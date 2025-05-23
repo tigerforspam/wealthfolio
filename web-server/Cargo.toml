@@ -1,0 +1,28 @@
+[package]
+name = "web-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+src-core = { path = "../src-core" }
+rspc = { version = "0.0.0-alpha.37", features = ["axum", "tracing"] }
+# rspc-axum = "0.0.0-alpha.37" # This is included in rspc feature flags
+axum = "0.7.5"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5.2", features = ["cors"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+log = "0.4"
+env_logger = "0.10" # For basic logging
+uuid = { version = "1.6.1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+rust_decimal = { version = "1.33.1", features = ["serde-with-str"] }
+
+# Add local src-core modules as dependencies if needed for direct access in router.rs
+# For example, if you need types from src-core::activities directly
+wealthfolio_core = { path = "../src-core" }
+
+[workspace]
+# This ensures that the web-server crate is part of the same workspace as src-core if src-core is part of a workspace.
+# If src-core is not part of a workspace, this line can be removed or adjusted.
+# Assuming src-core is a standalone crate or part of a root workspace.

@@ -1,6 +1,17 @@
-import { Activity, ActivityCreate, ActivityDetails, ActivitySearchResponse, ActivityUpdate } from '@/lib/types';
-import { getRunEnv, RUN_ENV, invokeTauri, logger } from '@/adapters';
+// src/commands/activity.ts
+import {
+  getAllActivities as clientGetAll,
+  searchActivities as clientSearch,
+  createActivity as clientCreate,
+  updateActivity as clientUpdate,
+  saveActivities as clientSave,
+  deleteActivity as clientDelete,
+} from '@/clients/activityClient';
+import type { Activity, ActivityCreate, ActivityDetails, ActivitySearchResponse, ActivityUpdate } from '@/lib/types';
+import { logger } from '@/adapters'; // Assuming logger is still needed from adapters
 
+// Re-define or import Filters and Sort if they were specific to this file
+// For now, assuming they are implicitly handled by the client or types are compatible.
 interface Filters {
   accountId?: string;
   activityType?: string;
@@ -12,16 +23,11 @@ interface Sort {
   desc: boolean;
 }
 
-
 export const getActivities = async (): Promise<ActivityDetails[]> => {
   try {
-    const response = await searchActivities(0, Number.MAX_SAFE_INTEGER, {}, '', {
-      id: 'date',
-      desc: true,
-    });
-    return response.data;
+    return await clientGetAll();
   } catch (error) {
-    logger.error('Error fetching all activities.');
+    logger.error('Error fetching all activities via client.'); // Updated log
     throw error;
   }
 };
@@ -34,77 +40,45 @@ export const searchActivities = async (
   sort: Sort,
 ): Promise<ActivitySearchResponse> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('search_activities', {
-          page,
-          pageSize,
-          accountIdFilter: filters?.accountId,
-          activityTypeFilter: filters?.activityType,
-          assetIdKeyword: searchKeyword,
-          sort,
-        });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientSearch(page, pageSize, filters, searchKeyword, sort);
   } catch (error) {
-    logger.error('Error fetching activities.');
+    logger.error('Error fetching activities via client.'); // Updated log
     throw error;
   }
 };
 
 export const createActivity = async (activity: ActivityCreate): Promise<Activity> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('create_activity', { activity: activity });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientCreate(activity);
   } catch (error) {
-    logger.error('Error creating activity.');
+    logger.error('Error creating activity via client.'); // Updated log
     throw error;
   }
 };
 
 export const updateActivity = async (activity: ActivityUpdate): Promise<Activity> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('update_activity', { activity: activity });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientUpdate(activity);
   } catch (error) {
-    logger.error('Error updating activity.');
+    logger.error('Error updating activity via client.'); // Updated log
     throw error;
   }
 };
 
 export const saveActivities = async (activities: ActivityUpdate[]): Promise<Activity[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('save_activities', { activities: activities });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientSave(activities);
   } catch (error) {
-    logger.error('Error saving activities.');
+    logger.error('Error saving activities via client.'); // Updated log
     throw error;
   }
 };
 
 export const deleteActivity = async (activityId: string): Promise<Activity> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('delete_activity', { activityId });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientDelete(activityId);
   } catch (error) {
-    logger.error('Error deleting activity.');
+    logger.error('Error deleting activity via client.'); // Updated log
     throw error;
   }
 };
