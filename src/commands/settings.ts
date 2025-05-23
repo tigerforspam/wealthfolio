@@ -1,46 +1,26 @@
-import { Settings } from '@/lib/types';
-import { getRunEnv, RUN_ENV, invokeTauri, logger } from '@/adapters';
+// src/commands/settings.ts
+import {
+  getSettings as clientGetSettings,
+  updateSettings as clientUpdateSettings,
+  // Exchange rate functions are also in settingsClient, but will be called from exchange-rates.ts
+} from '@/clients/settingsClient';
+import type { Settings, SettingsUpdate } from '@/lib/types';
+import { logger } from '@/adapters';
 
 export const getSettings = async (): Promise<Settings> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('get_settings');
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientGetSettings();
   } catch (error) {
-    logger.error('Error fetching settings.');
-    return {} as Settings;
-  }
-};
-
-export const updateSettings = async (settingsUpdate: Settings): Promise<Settings> => {
-  try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('update_settings', { settingsUpdate });
-      default:
-        throw new Error(`Unsupported`);
-    }
-  } catch (error) {
-    logger.error('Error updating settings.');
+    logger.error('Error fetching settings via client.', { error });
     throw error;
   }
 };
 
-export const backupDatabase = async (): Promise<{ filename: string; data: Uint8Array }> => {
+export const updateSettings = async (settingsUpdate: SettingsUpdate): Promise<Settings> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        const result = await invokeTauri<[string, number[]]>('backup_database');
-        const [filename, data] = result;
-        return { filename, data: new Uint8Array(data) };
-      default:
-        throw new Error(`Unsupported environment for database backup`);
-    }
+    return await clientUpdateSettings(settingsUpdate);
   } catch (error) {
-    logger.error('Error backing up database.');
+    logger.error('Error updating settings via client.', { error });
     throw error;
   }
 };

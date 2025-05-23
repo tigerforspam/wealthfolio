@@ -1,80 +1,55 @@
-import { ContributionLimit, NewContributionLimit, DepositsCalculation } from '@/lib/types';
-import { getRunEnv, RUN_ENV, invokeTauri, logger } from '@/adapters';
+// src/commands/contribution-limits.ts
+import {
+  getContributionLimits as clientGetContributionLimits,
+  createContributionLimit as clientCreateContributionLimit,
+  updateContributionLimit as clientUpdateContributionLimit,
+  deleteContributionLimit as clientDeleteContributionLimit,
+  calculateDepositsForContributionLimit as clientCalculateDeposits,
+} from '@/clients/limitsClient'; // Note: client is limitsClient.ts
+import type { ContributionLimit, NewContributionLimit, DepositsCalculation } from '@/lib/types';
+import { logger } from '@/adapters';
 
-export const getContributionLimit = async (): Promise<ContributionLimit[]> => {
+export const getContributionLimits = async (): Promise<ContributionLimit[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('get_contribution_limits');
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientGetContributionLimits();
   } catch (error) {
-    logger.error('Error fetching contribution limits.');
+    logger.error('Error fetching contribution limits via client.', { error });
     throw error;
   }
 };
 
-export const createContributionLimit = async (
-  newLimit: NewContributionLimit,
-): Promise<ContributionLimit> => {
+export const createContributionLimit = async (newLimit: NewContributionLimit): Promise<ContributionLimit> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('create_contribution_limit', { newLimit });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientCreateContributionLimit(newLimit);
   } catch (error) {
-    logger.error('Error creating contribution limit.');
+    logger.error('Error creating contribution limit via client.', { error });
     throw error;
   }
 };
 
-export const updateContributionLimit = async (
-  id: string,
-  updatedLimit: NewContributionLimit,
-): Promise<ContributionLimit> => {
+export const updateContributionLimit = async (id: string, updatedLimit: NewContributionLimit): Promise<ContributionLimit> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('update_contribution_limit', { id, updatedLimit });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientUpdateContributionLimit(id, updatedLimit);
   } catch (error) {
-    logger.error('Error updating contribution limit.');
+    logger.error('Error updating contribution limit via client.', { id, error });
     throw error;
   }
 };
 
 export const deleteContributionLimit = async (id: string): Promise<void> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('delete_contribution_limit', { id });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    await clientDeleteContributionLimit(id);
   } catch (error) {
-    logger.error('Error deleting contribution limit.');
+    logger.error('Error deleting contribution limit via client.', { id, error });
     throw error;
   }
 };
 
-export const calculateDepositsForLimit = async (
-  limitId: string,
-): Promise<DepositsCalculation> => {
+export const calculateDepositsForContributionLimit = async (limitId: string): Promise<DepositsCalculation> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('calculate_deposits_for_contribution_limit', { limitId });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientCalculateDeposits(limitId);
   } catch (error) {
-    logger.error('Error calculating deposits for contribution limit.');
+    logger.error('Error calculating deposits for contribution limit via client.', { limitId, error });
     throw error;
   }
 };
-

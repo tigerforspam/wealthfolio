@@ -1,201 +1,118 @@
-import { getRunEnv, RUN_ENV, invokeTauri, logger } from '@/adapters';
+// src/commands/portfolio.ts
 import {
+  getHoldings as clientGetHoldings,
+  getHolding as clientGetHolding,
+  getHistoricalValuations as clientGetHistoricalValuations,
+  getIncomeSummary as clientGetIncomeSummary,
+  calculateAccountsSimplePerformance as clientCalcSimplePerformance,
+  calculatePerformanceHistory as clientCalcPerformanceHistory,
+  calculatePerformanceSummary as clientCalcPerformanceSummary,
+  requestPortfolioRecalculate as clientRequestPortfolioRecalculate,
+  requestPortfolioUpdate as clientRequestPortfolioUpdate,
+} from '@/clients/portfolioClient';
+import type {
   Holding,
   IncomeSummary,
-  AccountValuation,
+  DailyAccountValuation,
   PerformanceMetrics,
   SimplePerformanceMetrics,
 } from '@/lib/types';
-
-
-export const updatePortfolio = async (): Promise<void> => {
-  try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('update_portfolio');
-      default:
-        throw new Error(`Unsupported`);
-    }
-  } catch (error) {
-    logger.error('Error updating portfolio.');
-    throw error;
-  }
-};
-
-export const recalculatePortfolio = async (): Promise<void> => {
-  try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('recalculate_portfolio');
-      default:
-        throw new Error(`Unsupported`);
-    }
-  } catch (error) {
-    logger.error('Error recalculating portfolio.');
-    throw error;
-  }
-};
+import { logger } from '@/adapters';
 
 export const getHoldings = async (accountId: string): Promise<Holding[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('get_holdings', { accountId });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientGetHoldings(accountId);
   } catch (error) {
-    logger.error('Error fetching holdings.');
+    logger.error('Error fetching holdings via client.', { accountId, error });
+    throw error;
+  }
+};
+
+export const getHolding = async (accountId: string, assetId: string): Promise<Holding | null> => {
+  try {
+    return await clientGetHolding(accountId, assetId);
+  } catch (error) {
+    logger.error('Error fetching specific holding via client.', { accountId, assetId, error });
+    throw error;
+  }
+};
+
+export const getHistoricalValuations = async (
+  accountId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<DailyAccountValuation[]> => {
+  try {
+    return await clientGetHistoricalValuations(accountId, startDate, endDate);
+  } catch (error) {
+    logger.error('Error fetching historical valuations via client.', { accountId, error });
     throw error;
   }
 };
 
 export const getIncomeSummary = async (): Promise<IncomeSummary[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('get_income_summary');
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientGetIncomeSummary();
   } catch (error) {
-    logger.error('Error fetching income summary.');
+    logger.error('Error fetching income summary via client.', { error });
     throw error;
   }
 };
 
-export const getHistoricalValuations = async (
-  accountId?: string,
-  startDate?: string,
-  endDate?: string,
-): Promise<AccountValuation[]> => {
+export const calculateAccountsSimplePerformance = async (accountIds: string[]): Promise<SimplePerformanceMetrics[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        const params: { accountId?: string; startDate?: string; endDate?: string } = {};
-        if (accountId) params.accountId = accountId;
-        if (startDate) params.startDate = startDate;
-        if (endDate) params.endDate = endDate;
-
-        return invokeTauri('get_historical_valuations', Object.keys(params).length > 0 ? params : undefined);
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientCalcSimplePerformance(accountIds);
   } catch (error) {
-    logger.error('Error fetching historical valuations.');
+    logger.error('Error calculating accounts simple performance via client.', { error });
     throw error;
   }
 };
 
 export const calculatePerformanceHistory = async (
-  itemType: 'account' | 'symbol',
+  itemType: string,
   itemId: string,
-  startDate: string,
-  endDate: string,
+  startDate?: string,
+  endDate?: string
 ): Promise<PerformanceMetrics> => {
   try {
-    const response = await invokeTauri('calculate_performance_history', {
-      itemType,
-      itemId,
-      startDate,
-      endDate,
-    });
-    
-    if (typeof response === 'string' || !response || Object.keys(response).length === 0) {
-      throw new Error(typeof response === 'string' ? response : 'Failed to calculate performance history');
-    }
-    
-    return response as PerformanceMetrics;
+    return await clientCalcPerformanceHistory(itemType, itemId, startDate, endDate);
   } catch (error) {
-    logger.error('Error calculating performance history.');
+    logger.error('Error calculating performance history via client.', { itemType, itemId, error });
     throw error;
   }
 };
 
-interface CalculatePerformanceSummaryArgs {
-  itemType: 'account' | 'symbol';
-  itemId: string;
-  startDate?: string | null;
-  endDate?: string | null;
-}
-
-export const calculatePerformanceSummary = async ({
-  itemType,
-  itemId,
-  startDate,
-  endDate,
-}: CalculatePerformanceSummaryArgs): Promise<PerformanceMetrics> => {
+export const calculatePerformanceSummary = async (
+  itemType: string,
+  itemId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<PerformanceMetrics> => {
   try {
-    const args: CalculatePerformanceSummaryArgs = {
-      itemType,
-      itemId,
-    };
-    if (startDate) {
-      args.startDate = startDate;
-    }
-    if (endDate) {
-      args.endDate = endDate;
-    }
-
-    const response = await invokeTauri<PerformanceMetrics>(
-      'calculate_performance_summary',
-      args as unknown as Record<string, unknown>
-    );
-
-    if (!response || typeof response !== 'object' || !response.id) {
-      logger.error(
-        `Invalid data received from calculate_performance_summary. Response: ${JSON.stringify(response)}`
-      );
-      throw new Error('Received invalid performance summary data from backend.');
-    }
-
-    return response;
+    return await clientCalcPerformanceSummary(itemType, itemId, startDate, endDate);
   } catch (error) {
-    const errorString = error instanceof Error ? error.message : JSON.stringify(error);
-    logger.error(
-      `Failed to fetch performance summary for ${itemType} ${itemId}. Error: ${errorString}`
-    );
-    throw error instanceof Error ? error : new Error('An unknown error occurred while fetching performance summary');
-  }
-};
-
-export const calculateAccountsSimplePerformance = async (
-  accountIds: string[],
-): Promise<SimplePerformanceMetrics[]> => {
-  try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('calculate_accounts_simple_performance', { accountIds });
-      default:
-        throw new Error(`Unsupported`);
-    }
-  } catch (error) {
-    logger.error('Error calculating simple performance for accounts.');
+    logger.error('Error calculating performance summary via client.', { itemType, itemId, error });
     throw error;
   }
 };
 
-export const getHolding = async (
-  accountId: string,
-  assetId: string
-): Promise<Holding | null> => {
+// Commands that were previously event emitters in Tauri
+export const recalculatePortfolio = async (): Promise<void> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        // The Rust command returns Option<Holding>, which tauri-plugin-api maps to Holding | null
-        return invokeTauri<Holding | null>('get_holding', { accountId, assetId });
-      default:
-        throw new Error(`Unsupported environment`);
-    }
+    // Calls clientRequestPortfolioRecalculate from portfolioClient
+    await clientRequestPortfolioRecalculate();
   } catch (error) {
-    logger.error(`Error fetching holding for asset ${assetId} in account ${accountId}.`);
-    // Re-throw or return null depending on desired error handling
+    logger.error('Error requesting portfolio recalculate via client.', { error });
     throw error;
-    // return null;
   }
 };
 
-
-
-
-
+export const updatePortfolio = async (): Promise<void> => {
+  try {
+    // Calls clientRequestPortfolioUpdate from portfolioClient
+    await clientRequestPortfolioUpdate();
+  } catch (error) {
+    logger.error('Error requesting portfolio update via client.', { error });
+    throw error;
+  }
+};

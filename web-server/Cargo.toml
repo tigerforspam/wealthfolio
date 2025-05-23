@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-src-core = { path = "../src-core" }
-rspc = { version = "0.0.0-alpha.37", features = ["axum", "tracing"] }
+rspc = { version = "1.0.0-rc.5", features = ["axum", "tracing"] }
 # rspc-axum = "0.0.0-alpha.37" # This is included in rspc feature flags
 axum = "0.7.5"
 tokio = { version = "1", features = ["full"] }

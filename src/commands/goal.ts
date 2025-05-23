@@ -1,99 +1,65 @@
-import z from 'zod';
-import { Goal, GoalAllocation } from '@/lib/types';
-import { newGoalSchema } from '@/lib/schemas';
-import { getRunEnv, RUN_ENV, invokeTauri } from '@/adapters';
+// src/commands/goal.ts
+import {
+  getGoals as clientGetGoals,
+  createGoal as clientCreateGoal,
+  updateGoal as clientUpdateGoal,
+  deleteGoal as clientDeleteGoal,
+  updateGoalAllocations as clientUpdateGoalAllocations,
+  loadGoalsAllocations as clientLoadGoalsAllocations,
+} from '@/clients/goalClient';
+import type { Goal, NewGoal, GoalsAllocation } from '@/lib/types';
 import { logger } from '@/adapters';
-
-type NewGoal = z.infer<typeof newGoalSchema>;
 
 export const getGoals = async (): Promise<Goal[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('get_goals');
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientGetGoals();
   } catch (error) {
-    logger.error('Error fetching goals.');
+    logger.error('Error fetching goals via client.', { error });
     throw error;
   }
 };
 
 export const createGoal = async (goal: NewGoal): Promise<Goal> => {
-  const newGoal = {
-    ...goal,
-    yearlyContribution: 0,
-    goalType: 'NEEDS',
-    isAchieved: false,
-  };
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('create_goal', { goal: newGoal });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientCreateGoal(goal);
   } catch (error) {
-    logger.error('Error creating goal.');
+    logger.error('Error creating goal via client.', { error });
     throw error;
   }
 };
 
 export const updateGoal = async (goal: Goal): Promise<Goal> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('update_goal', { goal });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientUpdateGoal(goal);
   } catch (error) {
-    logger.error('Error updating goal.');
+    logger.error('Error updating goal via client.', { error });
     throw error;
   }
 };
 
-export const deleteGoal = async (goalId: string): Promise<void> => {
+export const deleteGoal = async (goalId: string): Promise<number> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        await invokeTauri('delete_goal', { goalId });
-        return;
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientDeleteGoal(goalId);
   } catch (error) {
-    logger.error('Error deleting goal.');
+    logger.error('Error deleting goal via client.', { goalId, error });
     throw error;
   }
 };
 
-export const updateGoalsAllocations = async (allocations: GoalAllocation[]): Promise<void> => {
+export const updateGoalAllocations = async (allocations: GoalsAllocation[]): Promise<number> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        await invokeTauri('update_goal_allocations', { allocations });
-        return;
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientUpdateGoalAllocations(allocations);
   } catch (error) {
-    logger.error('Error saving goals allocations.');
+    logger.error('Error updating goal allocations via client.', { error });
     throw error;
   }
 };
 
-export const getGoalsAllocation = async (): Promise<GoalAllocation[]> => {
+export const loadGoalsAllocations = async (): Promise<GoalsAllocation[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('load_goals_allocations');
-      default:
-        throw new Error(`Unsupported`);
-    }
-  } catch (error) {
-    logger.error('Error fetching goals allocations.');
+    return await clientLoadGoalsAllocations();
+  } catch (error) { // Corrected: added {
+    logger.error('Error loading goal allocations via client.', { error });
     throw error;
   }
 };

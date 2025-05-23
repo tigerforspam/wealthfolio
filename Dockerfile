@@ -1,5 +1,5 @@
 # Stage 1: Build the Rust web-server
-FROM rust:1.78 as rust_builder
+FROM rust:1.82 as rust_builder
 
 WORKDIR /usr/src/app
 

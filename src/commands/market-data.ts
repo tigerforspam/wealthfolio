@@ -1,148 +1,67 @@
+// src/commands/market-data.ts
 import {
-  AssetData,
-  QuoteSummary,
-  Asset,
-  Quote,
-  UpdateAssetProfile,
-  MarketDataProviderInfo,
-} from '@/lib/types';
-import { getRunEnv, RUN_ENV, invokeTauri, logger } from '@/adapters';
+  searchSymbol as clientSearchSymbol,
+  requestMarketDataSync as clientRequestMarketDataSync,
+  updateQuote as clientUpdateQuote,
+  deleteQuote as clientDeleteQuote,
+  getQuoteHistory as clientGetQuoteHistory,
+  getMarketDataProviders as clientGetMarketDataProviders,
+} from '@/clients/marketDataClient';
+import type { Quote, QuoteSummary, MarketDataProviderInfo } from '@/lib/types';
+import { logger } from '@/adapters';
+type Option<T> = T | null | undefined;
 
-export const searchTicker = async (query: string): Promise<QuoteSummary[]> => {
+export const searchSymbol = async (query: string): Promise<QuoteSummary[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('search_symbol', { query });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    return await clientSearchSymbol(query);
   } catch (error) {
-    logger.error('Error searching for ticker.');
+    logger.error('Error searching symbol via client.', { query, error });
     throw error;
   }
 };
 
-export const syncHistoryQuotes = async (): Promise<void> => {
+export const syncMarketData = async (symbols: Option<string[]>, refetchAll: boolean): Promise<void> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        await invokeTauri('synch_quotes');
-        return;
-      default:
-        throw new Error(`Unsupported`);
-    }
+    // Note: The client function is named requestMarketDataSync
+    await clientRequestMarketDataSync(symbols, refetchAll);
   } catch (error) {
-    logger.error('Error syncing history quotes.');
+    logger.error('Error requesting market data sync via client.', { error });
     throw error;
   }
 };
 
-export const getAssetData = async (assetId: string): Promise<AssetData> => {
+export const updateQuote = async (quote: Quote): Promise<void> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('get_asset_data', { assetId });
-      default:
-        throw new Error(`Unsupported`);
-    }
+    await clientUpdateQuote(quote);
   } catch (error) {
-    logger.error('Error loading asset data.');
-    throw error;
-  }
-};
-
-export const updateAssetProfile = async (payload: UpdateAssetProfile): Promise<Asset> => {
-  try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('update_asset_profile', { id: payload.symbol, payload });
-      default:
-        throw new Error(`Unsupported`);
-    }
-  } catch (error) {
-    logger.error('Error updating asset profile.');
-    throw error;
-  }
-};
-
-export const updateAssetDataSource = async (symbol: string, dataSource: string): Promise<Asset> => {
-  try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('update_asset_data_source', { id: symbol, dataSource });
-      default:
-        throw new Error(`Unsupported`);
-    }
-  } catch (error) {
-    logger.error('Error updating asset data source.');
-    throw error;
-  }
-};
-
-export const updateQuote = async (symbol: string, quote: Quote): Promise<void> => {
-  try {
-    const runEnv = await getRunEnv();
-    if (runEnv === RUN_ENV.DESKTOP) {
-      return invokeTauri('update_quote', { symbol, quote: quote });
-    }
-  } catch (error) {
-    logger.error('Error updating quote');
-    throw error;
-  }
-};
-
-export const syncMarketData = async (symbols: string[], refetchAll: boolean): Promise<void> => {
-  try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        await invokeTauri('sync_market_data', { symbols, refetchAll });
-        return;
-      default:
-        throw new Error(`Unsupported`);
-    }
-  } catch (error) {
-    logger.error(`Error refreshing quotes for symbols: ${error}`);
+    logger.error('Error updating quote via client.', { error });
     throw error;
   }
 };
 
 export const deleteQuote = async (id: string): Promise<void> => {
   try {
-    const runEnv = await getRunEnv();
-    if (runEnv === RUN_ENV.DESKTOP) {
-      return invokeTauri('delete_quote', { id });
-    }
+    await clientDeleteQuote(id);
   } catch (error) {
-    logger.error('Error deleting quote');
+    logger.error('Error deleting quote via client.', { id, error });
     throw error;
   }
 };
 
 export const getQuoteHistory = async (symbol: string): Promise<Quote[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('get_quote_history', { symbol });
-      default:
-        throw new Error(`Unsupported environment`);
-    }
+    return await clientGetQuoteHistory(symbol);
   } catch (error) {
-    logger.error(`Error fetching quote history for symbol ${symbol}.`);
+    logger.error('Error fetching quote history via client.', { symbol, error });
     throw error;
   }
 };
 
 export const getMarketDataProviders = async (): Promise<MarketDataProviderInfo[]> => {
   try {
-    switch (getRunEnv()) {
-      case RUN_ENV.DESKTOP:
-        return invokeTauri('get_market_data_providers');
-      default:
-        logger.error('Unsupported environment for getMarketDataProviders');
-        throw new Error(`Unsupported environment`);
-    }
+    return await clientGetMarketDataProviders();
   } catch (error) {
-    logger.error('Error fetching market data providers.');
+    logger.error('Error fetching market data providers via client.', { error });
     throw error;
   }
 };
