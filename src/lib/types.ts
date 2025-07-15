@@ -79,19 +79,21 @@ export type ActivitySearchResponse = {
   };
 };
 
-export type ActivityCreate = {
+export type NewActivity = {
   accountId: string;
   activityType: string;
   activityDate: string | Date;
   assetId?: string;
-  quantity?: number;
-  unitPrice?: number;
-  amount?: number;
+  quantity?: number | string;
+  unitPrice?: number | string;
+  amount?: number | string;
   currency?: string;
-  fee?: number;
+  fee?: number | string;
   isDraft: boolean;
   comment?: string | null;
-}
+};
+
+export type ActivityCreate = NewActivity;
 
 export type ActivityUpdate = ActivityCreate & { id: string };
 export type ActivityImport = z.infer<typeof importActivitySchema>;

@@ -12,20 +12,21 @@ export function formatData(data: any, format: ExportedFileFormat): string {
 
 export function convertToCSV(data: any) {
   if (!data || data.length === 0) return '';
-  let headers = Object.keys(data[0]);
-  // Check if 'assetID' is present and replace it with 'symbol'
-  const assetIDIndex = headers.indexOf('assetId');
-  if (assetIDIndex !== -1) {
-    headers[assetIDIndex] = 'symbol';
+
+  const originalHeaders = Object.keys(data[0]);
+  const headers = originalHeaders.map(header => header === 'assetId' ? 'symbol' : header);
+  const csvRows = [headers.join(',')];
+
+  for (const row of data) {
+    const values = originalHeaders.map(header => {
+      const value = row[header];
+      if (typeof value === 'string') {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    });
+    csvRows.push(values.join(','));
   }
-  const array = [headers].concat(data);
-  return array
-    .map((row) => {
-      return Object.values(row)
-        .map((value) => {
-          return typeof value === 'string' ? JSON.stringify(value) : value;
-        })
-        .toString();
-    })
-    .join('\n');
+
+  return csvRows.join('\n');
 }

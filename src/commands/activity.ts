@@ -1,4 +1,4 @@
-import { Activity, ActivityCreate, ActivityDetails, ActivitySearchResponse, ActivityUpdate } from '@/lib/types';
+import { Activity, NewActivity, ActivityDetails, ActivitySearchResponse, ActivityUpdate } from '@/lib/types';
 import { getRunEnv, RUN_ENV, invokeTauri, logger } from '@/adapters';
 
 interface Filters {
@@ -53,7 +53,7 @@ export const searchActivities = async (
   }
 };
 
-export const createActivity = async (activity: ActivityCreate): Promise<Activity> => {
+export const createActivity = async (activity: NewActivity): Promise<Activity> => {
   try {
     switch (getRunEnv()) {
       case RUN_ENV.DESKTOP:

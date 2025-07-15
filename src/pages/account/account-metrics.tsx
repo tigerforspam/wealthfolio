@@ -1,14 +1,57 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AccountValuation, PerformanceMetrics } from '@/lib/types';
+import { Account, AccountValuation, PerformanceMetrics } from '@/lib/types';
 import { PrivacyAmount } from '@/components/privacy-amount';
 import { PerformanceGrid } from '@/pages/account/performance-grid';
 import { formatDate } from '@/lib/utils';
+import { MoneyInput } from '@/components/ui/money-input';
+import { Button } from '@/components/ui/button';
+import { Icons } from '@/components/icons';
+import { useBalanceUpdate } from './use-balance-update';
+
+interface EditableBalanceProps {
+  account: Account;
+  initialBalance: number;
+  currency: string;
+}
+
+const EditableBalance: React.FC<EditableBalanceProps> = ({ account, initialBalance, currency }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [balance, setBalance] = useState(initialBalance);
+  const { updateBalance, isPending } = useBalanceUpdate(account);
+
+  const handleSave = () => {
+    updateBalance(balance);
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-2">
+        <MoneyInput value={balance} onChange={(e) => setBalance(Number(e.target.value))} />
+        <Button size="sm" onClick={handleSave} disabled={isPending}>
+          {isPending ? <Icons.Spinner className="h-4 w-4 animate-spin" /> : <Icons.Check className="h-4 w-4" />}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
+          <Icons.Close className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-lg font-extrabold flex items-center gap-2" onClick={() => setIsEditing(true)}>
+      <PrivacyAmount value={initialBalance} currency={currency} />
+      <Icons.Edit className="h-4 w-4 text-muted-foreground cursor-pointer" />
+    </div>
+  );
+};
 
 interface AccountMetricsProps {
+  account?: Account | null;
   valuation?: AccountValuation | null;
   performance?: PerformanceMetrics | null;
   className?: string;
@@ -16,6 +59,7 @@ interface AccountMetricsProps {
 }
 
 const AccountMetrics: React.FC<AccountMetricsProps> = ({
+  account,
   valuation,
   performance,
   className,
@@ -79,9 +123,13 @@ const AccountMetrics: React.FC<AccountMetricsProps> = ({
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-lg font-bold">Cash Balance</CardTitle>
-        <div className="text-lg font-extrabold">
-          <PrivacyAmount value={valuation?.cashBalance || 0} currency={displayCurrency} />
-        </div>
+        {account && (
+          <EditableBalance
+            account={account}
+            initialBalance={valuation?.cashBalance || 0}
+            currency={displayCurrency}
+          />
+        )}
       </CardHeader>
       <CardContent className='space-y-6'>
         <Separator className="mb-4" />
