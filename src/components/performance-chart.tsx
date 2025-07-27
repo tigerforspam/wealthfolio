@@ -17,16 +17,24 @@ interface PerformanceChartProps {
     id: string;
     name: string;
     returns: ReturnData[];
+    returnRate?: number[];
+    returnByValue?: number[];
   }[];
 }
 
 export function PerformanceChart({ data }: PerformanceChartProps) {
-  const formattedData = data[0]?.returns?.map((item) => {
+  const formattedData = data[0]?.returns?.map((item, index) => {
     const dataPoint: Record<string, any> = { date: item.date };
     data.forEach((series) => {
       const matchingPoint = series.returns?.find((p) => p.date === item.date);
       if (matchingPoint) {
         dataPoint[series.id] = matchingPoint.value;
+        if (series.returnRate) {
+          dataPoint[`${series.id}_rate`] = series.returnRate[index];
+        }
+        if (series.returnByValue) {
+          dataPoint[`${series.id}_value`] = series.returnByValue[index];
+        }
       }
     });
     return dataPoint;
@@ -135,15 +143,41 @@ export function PerformanceChart({ data }: PerformanceChartProps) {
             />
             <ChartLegend content={<ChartLegendContent />} />
             {data.map((series, seriesIndex) => (
-              <Line
-                key={series.id}
-                type="linear"
-                dataKey={series.id}
-                stroke={CHART_COLORS[seriesIndex % CHART_COLORS.length]}
-                strokeWidth={2}
-                dot={false}
-                name={series.name}
-              />
+              <>
+                <Line
+                  key={series.id}
+                  type="linear"
+                  dataKey={series.id}
+                  stroke={CHART_COLORS[seriesIndex % CHART_COLORS.length]}
+                  strokeWidth={2}
+                  dot={false}
+                  name={`${series.name} (TWR)`}
+                />
+                {series.returnRate && (
+                  <Line
+                    key={`${series.id}_rate`}
+                    type="linear"
+                    dataKey={`${series.id}_rate`}
+                    stroke={CHART_COLORS[(seriesIndex + 1) % CHART_COLORS.length]}
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name={`${series.name} (Return Rate)`}
+                  />
+                )}
+                {series.returnByValue && (
+                  <Line
+                    key={`${series.id}_value`}
+                    type="linear"
+                    dataKey={`${series.id}_value`}
+                    stroke={CHART_COLORS[(seriesIndex + 2) % CHART_COLORS.length]}
+                    strokeWidth={2}
+                    strokeDasharray="3 3"
+                    dot={false}
+                    name={`${series.name} (Return Value)`}
+                  />
+                )}
+              </>
             ))}
           </LineChart>
         </ResponsiveContainer>

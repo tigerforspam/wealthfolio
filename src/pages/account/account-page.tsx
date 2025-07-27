@@ -22,12 +22,7 @@ import { useCalculatePerformanceHistory } from '@/pages/performance/hooks/use-pe
 import { subMonths } from 'date-fns';
 import { calculatePerformanceMetrics } from '@/lib/utils';
 
-interface HistoryChartData {
-  date: string;
-  totalValue: number;
-  netContribution: number;
-  currency: string;
-}
+import type { HistoryChartData } from '@/components/history-chart';
 
 // Helper function to get the initial date range (copied from dashboard)
 const getInitialDateRange = (): DateRange => ({
@@ -73,15 +68,22 @@ const AccountPage = () => {
       return calculatePerformanceMetrics(valuationHistory, false);
     }, [valuationHistory, id]);
 
-  const chartData: HistoryChartData[] = useMemo(() => {
-    if (!valuationHistory) return [];
-    return valuationHistory.map((valuation: AccountValuation) => ({
-      date: valuation.valuationDate,
-      totalValue: valuation.totalValue,
-      netContribution: valuation.netContribution,
-      currency: valuation.accountCurrency,
-    }));
-  }, [valuationHistory]);
+      const chartData: HistoryChartData[] = useMemo(() => {
+        if (!valuationHistory) return [];
+        return valuationHistory.map((valuation: AccountValuation, index) => {
+          const subHistory = valuationHistory.slice(0, index + 1);
+          const { simpleReturn, gainLossAmount } = calculatePerformanceMetrics(subHistory, false);
+          
+          return {
+            date: valuation.valuationDate,
+            totalValue: valuation.totalValue,
+            netContribution: valuation.netContribution,
+            returnRate: simpleReturn,
+            returnByValue: gainLossAmount,
+            currency: valuation.accountCurrency,
+          };
+        });
+      }, [valuationHistory]);
 
   const currentValuation = valuationHistory?.[valuationHistory.length - 1];
 

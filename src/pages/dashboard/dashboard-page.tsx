@@ -69,16 +69,23 @@ export default function DashboardPage() {
       : null;
   }, [valuationHistory]);
 
-  const chartData = useMemo(() => {
-    return (
-      valuationHistory?.map((item) => ({
-        date: item.valuationDate,
-        totalValue: item.totalValue,
-        netContribution: item.netContribution,
-        currency: item.baseCurrency || baseCurrency,
-      })) || []
-    );
-  }, [valuationHistory, baseCurrency]);
+    const chartData = useMemo(() => {
+      if (!valuationHistory?.length) return [];
+      
+      return valuationHistory.map((item, index) => {
+        const subHistory = valuationHistory.slice(0, index + 1);
+        const { simpleReturn, gainLossAmount } = calculatePerformanceMetrics(subHistory, false);
+        
+        return {
+          date: item.valuationDate,
+          totalValue: item.totalValue,
+          netContribution: item.netContribution,
+          returnRate: simpleReturn,
+          returnByValue: gainLossAmount,
+          currency: item.baseCurrency || baseCurrency,
+        };
+      });
+    }, [valuationHistory, baseCurrency]);
 
   if ((isValuationHistoryLoading && !valuationHistory) || (isHoldingsLoading && !holdings)) {
     return <DashboardSkeleton />;

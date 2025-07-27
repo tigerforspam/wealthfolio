@@ -15,6 +15,7 @@ const CustomTooltip = ({ active, payload, isBalanceHidden, isChartHovered }: Cus
   if (active && payload && payload.length > 0) {
     const totalValueData = payload.find(p => p.dataKey === 'totalValue');
     const netContributionData = payload.find(p => p.dataKey === 'netContribution');
+    const returnRateData = payload.find(p => p.dataKey === 'returnRate');
 
     if (totalValueData?.payload) {
       return (
@@ -49,6 +50,35 @@ const CustomTooltip = ({ active, payload, isBalanceHidden, isChartHovered }: Cus
                 />
               </div>
             )}
+            {returnRateData?.payload && (
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex items-center space-x-1.5">
+                  <span className="block h-0.5 w-3" style={{ backgroundColor: 'hsl(270 80% 60%)' }} />
+                  <span className="text-xs text-muted-foreground">Return:</span>
+                </div>
+                <span className="text-xs font-semibold">
+                  {new Intl.NumberFormat('en-US', {
+                    style: 'percent',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }).format(returnRateData.payload.returnRate)}
+                </span>
+              </div>
+            )}
+            {payload.find(p => p.dataKey === 'returnByValue')?.payload && (
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex items-center space-x-1.5">
+                  <span className="block h-0.5 w-3" style={{ backgroundColor: 'hsl(210 80% 60%)' }} />
+                  <span className="text-xs text-muted-foreground">Return by Value:</span>
+                </div>
+                <AmountDisplay
+                  value={payload.find(p => p.dataKey === 'returnByValue')?.payload.returnByValue}
+                  currency={payload.find(p => p.dataKey === 'returnByValue')?.payload.currency}
+                  isHidden={isBalanceHidden}
+                  className="text-xs font-semibold"
+                />
+              </div>
+            )}
           </div>
       );
     }
@@ -57,10 +87,12 @@ const CustomTooltip = ({ active, payload, isBalanceHidden, isChartHovered }: Cus
   return null;
 };
 
-interface HistoryChartData {
+export interface HistoryChartData {
   date: string;
   totalValue: number;
   netContribution: number;
+  returnRate: number;
+  returnByValue: number;
   currency: string;
 }
 
@@ -109,14 +141,31 @@ export function HistoryChart({
             <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.2} />
             <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0.1} />
           </linearGradient>
+          <linearGradient id="colorReturn" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="hsl(270 80% 60%)" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="hsl(270 80% 60%)" stopOpacity={0.1} />
+          </linearGradient>
+          <linearGradient id="colorReturnValue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="hsl(210 80% 60%)" stopOpacity={0.2} />
+            <stop offset="95%" stopColor="hsl(210 80% 60%)" stopOpacity={0.1} />
+          </linearGradient>
         </defs>
         <Tooltip
           position={{ y: -20 }}
           content={(props) => <CustomTooltip {...props} isBalanceHidden={isBalanceHidden} isChartHovered={isChartHovered} />}
         />
-        {/* <YAxis hide type="number" domain={[minValue, maxValue]} /> */}
-          <YAxis hide type="number" domain={['auto', 'auto']} />
+        <YAxis yAxisId="left" hide type="number" domain={['auto', 'auto']} />
+        <YAxis 
+          yAxisId="right"
+          orientation="right"
+          tickFormatter={(value) => new Intl.NumberFormat('en-US', {
+            style: 'percent',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }).format(value)}
+        />
         <Area
+          yAxisId="left"
           isAnimationActive={true}
           animationDuration={300}
           animationEasing="ease-out"
@@ -128,6 +177,19 @@ export function HistoryChart({
           fill="url(#colorUv)"
         />
         <Area
+          yAxisId="right"
+          isAnimationActive={true}
+          animationDuration={300}
+          animationEasing="ease-out"
+          connectNulls={true}
+          type="monotone"
+          dataKey="returnRate"
+          stroke="hsl(270 80% 60%)"
+          fillOpacity={1}
+          fill="url(#colorReturn)"
+        />
+        <Area
+          yAxisId="left"
           isAnimationActive={true}
           animationDuration={300}
           animationEasing="ease-out"
@@ -138,6 +200,18 @@ export function HistoryChart({
           fill="transparent"
           strokeDasharray="5 5"
           strokeOpacity={isChartHovered ? 0.8 : 0}
+        />
+        <Area
+          yAxisId="left"
+          isAnimationActive={true}
+          animationDuration={300}
+          animationEasing="ease-out"
+          connectNulls={true}
+          type="monotone"
+          dataKey="returnByValue"
+          stroke="hsl(210 80% 60%)"
+          fillOpacity={1}
+          fill="url(#colorReturnValue)"
         />
       </AreaChart>
     </ChartContainer>
