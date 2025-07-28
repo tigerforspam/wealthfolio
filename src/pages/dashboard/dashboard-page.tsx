@@ -33,13 +33,16 @@ function DashboardSkeleton() {
   );
 }
 
-// Helper function to get the initial date range for 3M
-const getInitialDateRange = (): DateRange => ({
-  from: subMonths(new Date(), 3),
-  to: new Date(),
-});
+// Helper function to get the initial date range for YTD
+const getInitialDateRange = (): DateRange => {
+  const now = new Date();
+  return {
+    from: new Date(now.getFullYear(), 0, 1), // January 1st of current year
+    to: now
+  };
+};
 
-const INITIAL_INTERVAL_CODE: TimePeriod = '3M';
+const INITIAL_INTERVAL_CODE: TimePeriod = 'YTD';
 
 export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(getInitialDateRange());
