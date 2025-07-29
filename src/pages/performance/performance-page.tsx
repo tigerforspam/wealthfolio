@@ -9,6 +9,7 @@ import { ApplicationHeader } from '@/components/header';
 import { ApplicationShell } from '@/components/shell';
 import { EmptyPlaceholder } from '@/components/ui/empty-placeholder';
 import { useCalculatePerformanceHistory } from './hooks/use-performance-data';
+import { usePerformanceChartData } from './hooks/use-performance-chart-data';
 import { BenchmarkSymbolSelector } from '@/components/benchmark-symbol-selector';
 import { AlertFeedback } from '@/components/alert-feedback';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +38,10 @@ const PORTFOLIO_TOTAL: TrackedItem = {
 interface ChartDataItem {
   id: string;
   name: string;
+  currency: string;
   returns: ReturnData[];
+  returnRate?: number[];
+  returnByValue?: number[];
 }
 
 // Define the actual structure returned by the hook (assuming it includes name/type)
@@ -210,22 +214,6 @@ export default function PerformancePage() {
     dateRange
   });
 
-  // Calculate derived chart data
-  const chartData = useMemo(() => {
-    if (!performanceData || !selectedItems) return [];
-
-    return performanceData
-      // Update type predicate to use the more accurate type
-      .filter((item): item is PerformanceDataFromHook => 
-        item !== null && typeof item.id === 'string' && Array.isArray(item.returns)
-      )
-      .map((perfItem): ChartDataItem => ({
-        id: perfItem.id,
-        name: perfItem.name, // Can now safely access name from perfItem
-        returns: perfItem.returns,
-      }));
-  }, [performanceData, selectedItems]);
-
   // Calculate selected item data
   const selectedItemData = useMemo(() => {
     if (!performanceData?.length || !selectedItems) return null;
@@ -243,6 +231,37 @@ export default function PerformancePage() {
       maxDrawdown: Number(found.maxDrawdown),
     };
   }, [selectedItemId, performanceData, selectedItems]);
+
+  const { chartData: valuationChartData, isLoading: isValuationLoading } = usePerformanceChartData(
+    dateRange,
+    selectedItemData?.id,
+  );
+
+  // Calculate derived chart data
+  const chartData = useMemo(() => {
+    if (!performanceData || !selectedItems) return [];
+
+    const baseChartData = performanceData
+      .filter((item): item is PerformanceDataFromHook => 
+        item !== null && typeof item.id === 'string' && Array.isArray(item.returns)
+      )
+      .map((perfItem): ChartDataItem => ({
+        id: perfItem.id,
+        name: perfItem.name,
+        currency: perfItem.currency,
+        returns: perfItem.returns,
+      }));
+
+    if (selectedItemData && valuationChartData.length > 0) {
+      const targetChartItem = baseChartData.find(item => item.id === selectedItemData.id);
+      if (targetChartItem) {
+        targetChartItem.returnRate = valuationChartData.map(d => d.returnRate);
+        targetChartItem.returnByValue = valuationChartData.map(d => d.returnByValue);
+      }
+    }
+    
+    return baseChartData;
+  }, [performanceData, selectedItems, selectedItemData, valuationChartData]);
 
   const handleAccountSelect = (account: { id: string; name: string }) => {
     setSelectedItems((prev) => {
@@ -406,7 +425,7 @@ export default function PerformancePage() {
           <CardContent className="min-h-0 flex-1 p-6">
             <PerformanceContent
               chartData={chartData}
-              isLoading={isLoadingPerformance}
+              isLoading={isLoadingPerformance || isValuationLoading}
               hasErrors={hasErrors}
               errorMessages={errorMessages}
             />

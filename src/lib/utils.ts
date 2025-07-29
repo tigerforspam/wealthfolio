@@ -191,6 +191,16 @@ export const formatDateTime = (date: string | Date, timezone?: string) => {
     time: timeFormatter.format(dateObj),
   };
 };
+
+export function formatCurrency(value: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 export function formatAmount(amount: number, currency: string, displayCurrency = true) {
   // Handle pence (GBp) specially
   if (currency === 'GBp' || currency === 'GBX') {
