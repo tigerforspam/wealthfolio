@@ -2,7 +2,7 @@ import { Activity, ActivityCreate, ActivityDetails, ActivitySearchResponse, Acti
 import { getRunEnv, RUN_ENV, invokeTauri, logger } from '@/adapters';
 
 interface Filters {
-  accountId?: string;
+  accountId?: string[];
   activityType?: string;
   symbol?: string;
 }
@@ -36,14 +36,16 @@ export const searchActivities = async (
   try {
     switch (getRunEnv()) {
       case RUN_ENV.DESKTOP:
-        return invokeTauri('search_activities', {
+        const keywordForBackend = searchKeyword.trim() ? searchKeyword : null;
+        const response = await invokeTauri('search_activities', {
           page,
           pageSize,
           accountIdFilter: filters?.accountId,
-          activityTypeFilter: filters?.activityType,
-          assetIdKeyword: searchKeyword,
+          activityTypeFilter: filters?.activityType ? [filters.activityType] : null,
+          assetIdKeyword: keywordForBackend,
           sort,
-        });
+        }) as ActivitySearchResponse;
+        return response;
       default:
         throw new Error(`Unsupported`);
     }
@@ -105,6 +107,30 @@ export const deleteActivity = async (activityId: string): Promise<Activity> => {
     }
   } catch (error) {
     logger.error('Error deleting activity.');
+    throw error;
+  }
+};
+
+export const getActivityCountByAccount = async (accountId: string): Promise<number> => {
+  try {
+    const response = await searchActivities(1, 1, { accountId: [accountId] }, '', { id: 'date', desc: true });
+    return response.meta.totalRowCount;
+  } catch (error) {
+    logger.error('Error fetching activity count for account.');
+    throw error;
+  }
+};
+
+export const exportActivitiesToCsv = async (accountId: string, isPrivacyEnabled: boolean): Promise<string> => {
+  try {
+    switch (getRunEnv()) {
+      case RUN_ENV.DESKTOP:
+        return invokeTauri('export_activities', { accountId, isPrivacyEnabled });
+      default:
+        throw new Error(`Unsupported`);
+    }
+  } catch (error) {
+    logger.error('Error exporting activities to CSV.');
     throw error;
   }
 };

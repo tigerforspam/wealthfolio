@@ -104,6 +104,7 @@ pub fn main() {
             commands::activity::import_activities,
             commands::activity::get_account_import_mapping,
             commands::activity::save_account_import_mapping,
+            commands::activity::export_activities,
             commands::settings::get_settings,
             commands::settings::is_auto_update_check_enabled,
             commands::settings::update_settings,

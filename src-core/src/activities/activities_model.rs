@@ -230,12 +230,12 @@ pub struct ActivityDetails {
     pub account_name: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub account_currency: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    pub asset_symbol: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    pub asset_symbol: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     pub asset_name: Option<String>,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    pub asset_data_source: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    pub asset_data_source: Option<String>,
 }
 
 impl ActivityDetails {
@@ -669,7 +669,7 @@ impl From<ActivityUpdate> for ActivityDB {
             amount,
             is_draft: domain.is_draft,
             comment: domain.comment,
-            created_at: now.to_rfc3339(), // This should ideally preserve original created_at. Need to fetch before update.
+            created_at: now.to_rfc3339(),
             updated_at: now.to_rfc3339(),
         }
     }
