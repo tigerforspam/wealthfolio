@@ -1,37 +1,40 @@
 #!/bin/bash
 
-PORT=1420
+# 确保脚本在同一目录下
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 检测端口是否被占用
-if lsof -i :$PORT > /dev/null; then
-    echo "端口 $PORT 被占用，尝试关闭占用进程..."
-    PID=$(lsof -t -i :$PORT)
-    kill -9 $PID
-    echo "已关闭进程 $PID"
+# 检查依赖脚本是否存在
+if [ ! -f "$SCRIPT_DIR/build.sh" ]; then
+    echo "错误：build.sh 脚本不存在"
+    exit 1
 fi
 
-echo "端口检测完成，开始构建.."
+if [ ! -f "$SCRIPT_DIR/run.sh" ]; then
+    echo "错误：run.sh 脚本不存在"
+    exit 1
+fi
 
-# 安装依赖
-echo "安装前端依赖..."
-npm install
+# 执行构建
+echo "=== 开始构建阶段 ==="
+bash "$SCRIPT_DIR/build.sh"
+BUILD_RESULT=$?
 
-echo "安装Rust依赖..."
-cd src-tauri
-cargo fetch
-cd ..
+if [ $BUILD_RESULT -ne 0 ]; then
+    echo "构建失败，退出码: $BUILD_RESULT"
+    exit $BUILD_RESULT
+fi
 
-# 构建前端
-echo "构建前端..."
-npm run build
+echo ""
+echo "=== 构建完成，开始运行阶段 ==="
 
-# 构建后端
-echo "构建后端..."
-cd src-tauri
-cargo tauri build
-cd ..
+# 执行运行
+bash "$SCRIPT_DIR/run.sh"
+RUN_RESULT=$?
 
-# 启动应用
-echo "启动应用..."
-cd src-tauri
-cargo tauri dev
+if [ $RUN_RESULT -ne 0 ]; then
+    echo "运行失败，退出码: $RUN_RESULT"
+    exit $RUN_RESULT
+fi
+
+echo ""
+echo "=== 构建和运行流程完成 ==="
