@@ -6,6 +6,7 @@ export const PORTFOLIO_ACCOUNT_ID = 'TOTAL';
 export const HoldingType = {
   CASH: 'cash',
   SECURITY: 'security',
+  STOCK: 'stock',
 } as const;
 
 export type HoldingType = (typeof HoldingType)[keyof typeof HoldingType];

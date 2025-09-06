@@ -135,6 +135,7 @@ export const Icons = {
   StretchHorizontal: StretchHorizontal,
   Menu: TableProperties,
   Import: Upload,
+  Export: Download,
   FileText: FileText,
   FileX: FileX,
   XCircle: XCircle,

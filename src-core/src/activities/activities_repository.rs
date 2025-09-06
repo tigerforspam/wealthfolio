@@ -97,13 +97,13 @@ impl ActivityRepositoryTrait for ActivityRepository {
     ) -> Result<ActivitySearchResponse> {
         let mut conn = get_connection(&self.pool)?;
 
-        let offset = page * page_size;
+        let offset = (page - 1) * page_size;
 
         // Function to create base query
         let create_base_query = |_conn: &SqliteConnection| {
             let mut query = activities::table
                 .inner_join(accounts::table.on(activities::account_id.eq(accounts::id)))
-                .inner_join(assets::table.on(activities::asset_id.eq(assets::id)))
+                .left_join(assets::table.on(activities::asset_id.eq(assets::id)))
                 .filter(accounts::is_active.eq(true))
                 .into_boxed();
 
@@ -181,9 +181,9 @@ impl ActivityRepositoryTrait for ActivityRepository {
                 activities::updated_at,
                 accounts::name,
                 accounts::currency,
-                assets::symbol,
-                assets::name,
-                assets::data_source,
+                assets::symbol.nullable(),
+                assets::name.nullable(),
+                assets::data_source.nullable(),
             ))
             .limit(page_size)
             .offset(offset)

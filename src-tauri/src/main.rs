@@ -101,6 +101,7 @@ pub fn main() {
             commands::activity::import_activities,
             commands::activity::get_account_import_mapping,
             commands::activity::save_account_import_mapping,
+            commands::activity::export_activities,
             commands::settings::get_settings,
             commands::settings::update_settings,
             commands::settings::get_latest_exchange_rates,

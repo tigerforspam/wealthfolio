@@ -6,9 +6,11 @@ use crate::events::{emit_portfolio_trigger_recalculate, PortfolioRequestPayload}
 use log::debug;
 use tauri::{AppHandle, State};
 use wealthfolio_core::activities::{
-    Activity, ActivityImport, ActivitySearchResponse, ActivityUpdate, ImportMappingData,
+    Activity, ActivityDetails, ActivityImport, ActivitySearchResponse, ActivityUpdate, ImportMappingData,
     NewActivity, Sort,
 };
+
+use csv::WriterBuilder;
 
 // Helper function to generate symbols for portfolio recalculation (single activity)
 fn get_symbols_to_sync(
@@ -61,6 +63,69 @@ fn get_all_symbols_to_sync(
     Ok(all_symbols.into_iter().collect())
 }
 
+fn format_activity_to_csv_row(activity: &ActivityDetails, is_privacy_enabled: bool) -> Vec<String> {
+    let mut row = vec![
+        activity.id.clone(),
+        activity.account_id.clone(),
+        activity.date.clone(),
+        activity.activity_type.clone(),
+        activity.asset_id.clone(),
+        activity.asset_symbol.clone().unwrap_or_default(),
+        activity.asset_name.clone().unwrap_or_default(),
+    ];
+
+    // quantity
+    row.push(activity.get_quantity().to_string());
+
+    // unit_price, mask if privacy
+    let unit_price_str = if is_privacy_enabled {
+        "****".to_string()
+    } else {
+        activity.get_unit_price().to_string()
+    };
+    row.push(unit_price_str);
+
+    // amount, mask if privacy
+    let amount_str = if is_privacy_enabled {
+        "****".to_string()
+    } else {
+        activity.get_amount().map_or("0".to_string(), |a| a.to_string())
+    };
+    row.push(amount_str);
+
+    // fee, mask if privacy
+    let fee_str = if is_privacy_enabled {
+        "****".to_string()
+    } else {
+        activity.get_fee().to_string()
+    };
+    row.push(fee_str);
+
+    row.push(activity.currency.clone());
+    row.push(activity.comment.clone().unwrap_or_default());
+    row.push(activity.is_draft.to_string());
+
+    row
+}
+
+fn create_csv_from_activities(activities: Vec<ActivityDetails>, is_privacy_enabled: bool) -> String {
+    let headers = vec![
+        "id", "accountId", "activityDate", "activityType", "assetId", "assetSymbol", "assetName",
+        "quantity", "unitPrice", "amount", "fee", "currency", "comment", "isDraft"
+    ];
+
+    let mut wtr = WriterBuilder::new().has_headers(false).from_writer(vec![]);
+    wtr.write_record(&headers).unwrap();
+
+    for activity in activities {
+        let row = format_activity_to_csv_row(&activity, is_privacy_enabled);
+        wtr.write_record(&row).unwrap();
+    }
+
+    let data = wtr.into_inner().unwrap();
+    String::from_utf8(data).expect("Failed to convert CSV to string")
+}
+
 #[tauri::command]
 pub async fn get_activities(
     state: State<'_, Arc<ServiceContext>>,
@@ -79,15 +144,21 @@ pub async fn search_activities(
     sort: Option<Sort>,
     state: State<'_, Arc<ServiceContext>>,
 ) -> Result<ActivitySearchResponse, String> {
-    debug!("Search activities... {}, {}", page, page_size);
-    Ok(state.activity_service().search_activities(
+    debug!("Search activities params: page={}, page_size={}, account_filter={:?}, type_filter={:?}, keyword={:?}, sort={:?}",
+           page, page_size, account_id_filter, activity_type_filter, asset_id_keyword, sort);
+    let result = state.activity_service().search_activities(
         page,
         page_size,
         account_id_filter,
         activity_type_filter,
         asset_id_keyword,
         sort,
-    )?)
+    );
+    match &result {
+        Ok(r) => debug!("Search activities result: total={}, data_len={}", r.meta.total_row_count, r.data.len()),
+        Err(e) => debug!("Search activities error: {}", e),
+    }
+    Ok(result?)
 }
 
 #[tauri::command]
@@ -236,3 +307,34 @@ pub async fn import_activities(
 
     Ok(result)
 }
+
+#[tauri::command]
+pub async fn export_activities(
+    account_id: String,
+    is_privacy_enabled: bool,
+    state: State<'_, Arc<ServiceContext>>,
+) -> Result<String, String> {
+    debug!("Exporting activities for account: {}", account_id);
+
+    let search_result = state.activity_service().search_activities(1, 100000, Some(vec![account_id.clone()]), None, None, None)
+        .map_err(|e| format!("Failed to get activities: {}", e))?;
+    let mut activities: Vec<ActivityDetails> = search_result.data;
+
+    if activities.is_empty() {
+        return Err("No activities to export".to_string());
+    }
+
+    // Sort by date descending
+    activities.sort_by(|a, b| b.date.cmp(&a.date));
+
+    if activities.len() > 50000 {
+        return Err("Too many activities to export (limit 50k)".to_string());
+    }
+
+    let activities_count = activities.len();
+    let csv_content = create_csv_from_activities(activities, is_privacy_enabled);
+    debug!("CSV generated, length: {}, activities count: {}", csv_content.len(), activities_count);
+
+    Ok(csv_content)
+}
+

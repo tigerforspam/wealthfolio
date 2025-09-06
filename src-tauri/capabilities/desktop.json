@@ -21,10 +21,19 @@
     "fs:allow-remove",
     "fs:allow-rename",
     "fs:allow-exists",
+    "fs:allow-write-text-file",
+    "fs:allow-download-write",
+    "fs:allow-document-write",
+    "fs:allow-desktop-write",
+    "fs:allow-home-write",
     {
       "identifier": "fs:scope",
       "allow": [
-        "$APPDATA/**"
+        "$APPDATA/**",
+        "$DOWNLOAD/**",
+        "$DOCUMENT/**",
+        "$DESKTOP/**",
+        "$HOME/**"
       ]
     },
     "core:window:allow-start-dragging",

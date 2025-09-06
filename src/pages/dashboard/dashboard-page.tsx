@@ -12,7 +12,6 @@ import { useSettingsContext } from '@/lib/settings-provider';
 import { useValuationHistory } from '@/hooks/use-valuation-history';
 import { PortfolioUpdateTrigger } from '@/pages/dashboard/portfolio-update-trigger';
 import { DateRange, TimePeriod } from '@/lib/types';
-import { subMonths } from 'date-fns';
 import { calculatePerformanceMetrics } from '@/lib/utils';
 import { PORTFOLIO_ACCOUNT_ID } from '@/lib/constants';
 import { useHoldings } from '@/hooks/use-holdings';
