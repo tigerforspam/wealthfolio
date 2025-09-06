@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table/data-table-column-header';
-import { safeDivide } from '@/lib/utils';
+import { safeDivide, cn } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import { GainPercent } from '@/components/gain-percent';
 
@@ -13,8 +13,9 @@ import { useNavigate } from 'react-router-dom';
 import { useBalancePrivacy } from '@/context/privacy-context';
 import { AmountDisplay } from '@/components/amount-display';
 import { QuantityDisplay } from '@/components/quantity-display';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { calculateAllocationPercentage, formatPercentage, calculateTotalPortfolioValue } from '@/lib/portfolio-percentage-utils';
 
 // Helper function to get display value and currency based on toggle state
 const getDisplayValueAndCurrency = (
@@ -49,6 +50,11 @@ export const HoldingsTable = ({
 }) => {
   const { isBalanceHidden } = useBalancePrivacy();
   const [showConvertedValues, setShowConvertedValues] = useState(false);
+
+  // Calculate total portfolio value for allocation percentages
+  const totalPortfolioValue = useMemo(() => {
+    return calculateTotalPortfolioValue(holdings);
+  }, [holdings]);
 
   if (isLoading) {
     return (
@@ -86,7 +92,7 @@ export const HoldingsTable = ({
     <div className="pt-6">
       <DataTable
         data={holdings}
-        columns={getColumns(isBalanceHidden, showConvertedValues, setShowConvertedValues)}
+        columns={getColumns(isBalanceHidden, showConvertedValues, setShowConvertedValues, totalPortfolioValue)}
         searchBy="symbol"
         filters={filters}
         showColumnToggle={true}
@@ -109,6 +115,7 @@ const getColumns = (
   isHidden: boolean,
   showConvertedValues: boolean,
   setShowConvertedValues: (value: boolean) => void,
+  totalPortfolioValue: number,
 ): ColumnDef<Holding>[] => [
   {
     id: 'symbol',
@@ -268,6 +275,30 @@ const getColumns = (
       const valueA = rowA.original.marketValue.base ?? 0;
       const valueB = rowB.original.marketValue.base ?? 0;
       return valueA - valueB;
+    },
+  },
+  {
+    id: 'allocation',
+    accessorFn: (row) => calculateAllocationPercentage(row, totalPortfolioValue),
+    enableHiding: true,
+    header: ({ column }) => (
+      <DataTableColumnHeader className="justify-end" column={column} title="Allocation %" />
+    ),
+    meta: {
+      label: 'Allocation %',
+    },
+    cell: ({ row }) => (
+      <div className="flex min-h-[40px] flex-col items-end justify-center px-4">
+        <span className={cn("text-sm", isHidden && "blur-sm")}>
+          {formatPercentage(calculateAllocationPercentage(row.original, totalPortfolioValue))}
+        </span>
+        <div className="text-xs text-transparent">-</div>
+      </div>
+    ),
+    sortingFn: (rowA, rowB) => {
+      const percentA = calculateAllocationPercentage(rowA.original, totalPortfolioValue);
+      const percentB = calculateAllocationPercentage(rowB.original, totalPortfolioValue);
+      return percentA - percentB;
     },
   },
   {
