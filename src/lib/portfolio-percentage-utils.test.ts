@@ -9,7 +9,7 @@ import { Holding, HoldingType } from '@/lib/types';
 // Helper function to create a mock holding
 const createMockHolding = (marketValueBase: number | null | undefined): Holding => ({
   id: 'test-holding',
-  holdingType: HoldingType.STOCK,
+  holdingType: HoldingType.SECURITY,
   accountId: 'test-account',
   quantity: 100,
   localCurrency: 'USD',

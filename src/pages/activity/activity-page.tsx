@@ -17,6 +17,7 @@ import EditableActivityTable from './components/editable-activity-table';
 import ActivityTable from './components/activity-table';
 import { getActivityCountByAccount, exportActivitiesToCsv, searchActivities } from '@/commands/activity';
 import { useBalancePrivacy } from '@/context/privacy-context';
+import { BulkHoldingsModal } from './components/forms/bulk-holdings-modal';
 
 const ActivityPage = () => {
   const [showForm, setShowForm] = useState(false);
